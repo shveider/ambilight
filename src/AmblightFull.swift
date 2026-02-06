@@ -37,19 +37,35 @@ class SerialPort {
     var fd: Int32 = -1
 
     init(path: String) {
-        fd = open(path, O_RDWR | O_NOCTTY)
+
+        fd = open(path, O_RDWR | O_NOCTTY | O_NONBLOCK)
+
+        if fd < 0 {
+            perror("❌ open failed")
+            return
+        }
 
         var options = termios()
-        tcgetattr(fd, &options)
 
-        cfsetspeed(&options, speed_t(B115200))
+        if tcgetattr(fd, &options) != 0 {
+            perror("❌ tcgetattr failed")
+            return
+        }
+
+        cfsetispeed(&options, speed_t(B115200))
+        cfsetospeed(&options, speed_t(B115200))
+
         options.c_cflag |= (tcflag_t(CLOCAL) | tcflag_t(CREAD))
         options.c_cflag &= ~tcflag_t(PARENB)
         options.c_cflag &= ~tcflag_t(CSTOPB)
         options.c_cflag &= ~tcflag_t(CSIZE)
         options.c_cflag |= tcflag_t(CS8)
 
-        tcsetattr(fd, TCSANOW, &options)
+        if tcsetattr(fd, TCSANOW, &options) != 0 {
+            perror("❌ tcsetattr failed")
+            return
+        }
+
         tcflush(fd, TCIOFLUSH)
 
         print("✓ Serial B115200 opened")
