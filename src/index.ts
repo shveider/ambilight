@@ -2,6 +2,10 @@ import screenshot from 'screenshot-desktop'
 import sharp from 'sharp'
 import { SerialPort } from 'serialport'
 
+/* ================================
+   CONFIG
+================================ */
+
 const NUM_TOP = 57
 const NUM_SIDE = 32
 const TOTAL_LEDS = 178
@@ -11,13 +15,40 @@ const RESIZE_WIDTH = 320
 const FPS = 20
 
 const SERIAL_PORT = '/dev/tty.usbserial-1320'
+const BAUD_RATE = 115200
+
+const START_BYTE = 255
+const END_BYTE = 254
+
+const FRAME_DATA_SIZE = TOTAL_LEDS * 3
+const FRAME_SIZE = 1 + FRAME_DATA_SIZE + 1
+
+/* ================================
+   SERIAL
+================================ */
 
 const port = new SerialPort({
   path: SERIAL_PORT,
-  baudRate: 115200,
+  baudRate: BAUD_RATE,
 })
 
-type RGB = [number, number, number];
+port.on('open', () => {
+  console.log('Serial port opened:', SERIAL_PORT)
+})
+
+port.on('error', (err) => {
+  console.error('Serial error:', err)
+})
+
+/* ================================
+   TYPES
+================================ */
+
+type RGB = [number, number, number]
+
+/* ================================
+   COLOR CALCULATION
+================================ */
 
 function averageColor(
   data: Buffer,
@@ -27,10 +58,10 @@ function averageColor(
   x2: number,
   y2: number,
 ): RGB {
-  let r = 0,
-    g = 0,
-    b = 0,
-    count = 0
+  let r = 0
+  let g = 0
+  let b = 0
+  let count = 0
 
   for (let y = y1; y < y2; y++) {
     for (let x = x1; x < x2; x++) {
@@ -51,84 +82,122 @@ function averageColor(
   ]
 }
 
-async function captureFrame(): Promise<Buffer> {
-  const img = await screenshot({format: 'png'})
+/* ================================
+   FRAME CAPTURE
+================================ */
 
-  const {data, info} = await sharp(img)
+async function captureFrame(): Promise<Buffer> {
+  const img = await screenshot({ format: 'png' })
+
+  const { data, info } = await sharp(img)
     .resize(RESIZE_WIDTH)
     .raw()
-    .toBuffer({resolveWithObject: true})
+    .toBuffer({ resolveWithObject: true })
 
-  const {width, height} = info
+  const { width, height } = info
 
-  const frame: number[] = []
-  frame.push(255) // start byte
+  const frame = Buffer.alloc(FRAME_SIZE)
+  frame[0] = START_BYTE
+
+  let offset = 1
+
+  const pushRGB = (rgb: RGB) => {
+    frame[offset++] = rgb[0]
+    frame[offset++] = rgb[1]
+    frame[offset++] = rgb[2]
+  }
 
   // TOP
   for (let i = 0; i < NUM_TOP; i++) {
     const x1 = Math.floor((i / NUM_TOP) * width)
     const x2 = Math.floor(((i + 1) / NUM_TOP) * width)
-    const rgb = averageColor(data, width, x1, 0, x2, CAPTURE_EDGE_THICKNESS)
-    frame.push(...rgb)
+    pushRGB(
+      averageColor(data, width, x1, 0, x2, CAPTURE_EDGE_THICKNESS),
+    )
   }
 
   // RIGHT
   for (let i = 0; i < NUM_SIDE; i++) {
     const y1 = Math.floor((i / NUM_SIDE) * height)
     const y2 = Math.floor(((i + 1) / NUM_SIDE) * height)
-    const rgb = averageColor(
-      data,
-      width,
-      width - CAPTURE_EDGE_THICKNESS,
-      y1,
-      width,
-      y2,
+    pushRGB(
+      averageColor(
+        data,
+        width,
+        width - CAPTURE_EDGE_THICKNESS,
+        y1,
+        width,
+        y2,
+      ),
     )
-    frame.push(...rgb)
   }
 
   // BOTTOM
   for (let i = 0; i < NUM_TOP; i++) {
     const x1 = Math.floor((i / NUM_TOP) * width)
     const x2 = Math.floor(((i + 1) / NUM_TOP) * width)
-    const rgb = averageColor(
-      data,
-      width,
-      x1,
-      height - CAPTURE_EDGE_THICKNESS,
-      x2,
-      height,
+    pushRGB(
+      averageColor(
+        data,
+        width,
+        x1,
+        height - CAPTURE_EDGE_THICKNESS,
+        x2,
+        height,
+      ),
     )
-    frame.push(...rgb)
   }
 
   // LEFT
   for (let i = 0; i < NUM_SIDE; i++) {
     const y1 = Math.floor((i / NUM_SIDE) * height)
     const y2 = Math.floor(((i + 1) / NUM_SIDE) * height)
-    const rgb = averageColor(
-      data,
-      width,
-      0,
-      y1,
-      CAPTURE_EDGE_THICKNESS,
-      y2,
+    pushRGB(
+      averageColor(
+        data,
+        width,
+        0,
+        y1,
+        CAPTURE_EDGE_THICKNESS,
+        y2,
+      ),
     )
-    frame.push(...rgb)
   }
 
-  return Buffer.from(frame)
+  frame[offset] = END_BYTE
+
+  return frame
 }
 
-async function main() {
-  setInterval(async () => {
-    try {
-      const frame = await captureFrame()
+/* ================================
+   MAIN LOOP
+================================ */
+
+let isProcessing = false
+
+async function tick() {
+  if (isProcessing) return
+  if (!port.writable) return
+
+  try {
+    isProcessing = true
+
+    const frame = await captureFrame()
+
+    if (frame.length === FRAME_SIZE) {
       port.write(frame)
-    } catch (err) {
-      console.error('Frame error:', err)
     }
-  }, 1000 / FPS)
+  } catch (err) {
+    console.error('Frame error:', err)
+  } finally {
+    isProcessing = false
+  }
 }
 
-void main()
+function main() {
+  console.log('Ambilight started at', FPS, 'FPS')
+
+  setInterval(tick, 1000 / FPS)
+}
+
+main()
