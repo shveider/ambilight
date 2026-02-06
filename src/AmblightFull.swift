@@ -42,7 +42,7 @@ class SerialPort {
         var options = termios()
         tcgetattr(fd, &options)
 
-        cfsetspeed(&options, B115200)
+        cfsetspeed(&options, speed_t(B115200))
         options.c_cflag |= (tcflag_t(CLOCAL) | tcflag_t(CREAD))
         options.c_cflag &= ~tcflag_t(PARENB)
         options.c_cflag &= ~tcflag_t(CSTOPB)
