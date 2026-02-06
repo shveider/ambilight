@@ -2,7 +2,7 @@
 
 #define LED_PIN 6
 #define NUM_LEDS 178
-#define BRIGHTNESS 100
+#define BRIGHTNESS 220
 
 #define START_BYTE 255
 #define END_BYTE 254
@@ -20,6 +20,7 @@ void setup() {
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
 }
+
 
 void loop() {
   while (Serial.available()) {
