@@ -138,8 +138,8 @@ func avg(
         while x < x2 {
             let i = (y * width + x) * 4
             b += Int(data[i])
-            g += Int(data[i + 1])
             r += Int(data[i + 2])
+            g += Int(data[i + 1])
             count += 1
             x += skip
         }
