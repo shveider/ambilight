@@ -52,7 +52,7 @@ class SerialPort {
         tcsetattr(fd, TCSANOW, &options)
         tcflush(fd, TCIOFLUSH)
 
-        print("✓ Serial 250000 opened")
+        print("✓ Serial B115200 opened")
     }
 
     func write(_ buffer: [UInt8]) {
