@@ -34,8 +34,9 @@ Task {
 Task {
     do {
         print("🔄 Починаємо захоплення...")
-        try await capture.startCapture()
-        print("✅ Захоплення активне")
+
+        // Чекаємо секунду і перевіряємо чи є кадри
+        try await Task.sleep(nanoseconds: 1_000_000_000)
     } catch {
         print("❌ Помилка захоплення екрану: \(error)")
     }
