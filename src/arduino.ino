@@ -16,7 +16,7 @@ int bufferIndex = 0;
 bool receiving = false;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(230400);
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
 }

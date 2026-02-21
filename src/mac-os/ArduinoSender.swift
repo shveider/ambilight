@@ -30,8 +30,8 @@ class ArduinoSender {
         var options = termios()
         tcgetattr(fd, &options)
 
-        cfsetispeed(&options, speed_t(B115200))
-        cfsetospeed(&options, speed_t(B115200))
+        cfsetispeed(&options, speed_t(B230400))
+        cfsetospeed(&options, speed_t(B230400))
 
         options.c_cflag &= ~UInt(PARENB)
         options.c_cflag &= ~UInt(CSTOPB)

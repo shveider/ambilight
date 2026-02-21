@@ -35,7 +35,7 @@ class ScreenCapture: NSObject, SCStreamOutput {
         let config = SCStreamConfiguration()
         config.width = display.width
         config.height = display.height
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 40)
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.showsCursor = false
         // Вимикаємо чергу кадрів щоб не накопичувались в памʼяті
@@ -50,7 +50,7 @@ class ScreenCapture: NSObject, SCStreamOutput {
         )
 
         try await stream?.startCapture()
-        print("✅ Захоплення розпочато — 60 FPS")
+        print("✅ Захоплення розпочато — 40 FPS")
     }
 
     // MARK: - Stop Capture
