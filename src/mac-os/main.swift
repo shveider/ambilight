@@ -19,8 +19,6 @@ let startTime     = Date()
 capture.onFrame = { cgImage in
     frameCount += 1
     let elapsed = Date().timeIntervalSince(startTime)
-    print("Кадр #\(frameCount) | \(String(format: "%.3f", elapsed))s")
-
     let colors = colorReader.readColors(from: cgImage)
     ambilightWindow.updateColors(colors)
     arduino?.sendColors(colors)
