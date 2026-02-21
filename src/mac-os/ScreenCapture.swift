@@ -45,7 +45,7 @@ class ScreenCapture: NSObject, SCStreamOutput {
         // Вимикаємо чергу кадрів щоб не накопичувались в памʼяті
         config.queueDepth = 3
 
-        stream = SCStream(filter: filter, configuration: config, delegate: nil)
+        stream = SCStream(filter: filter, configuration: config, delegate: self)
 
         try stream?.addStreamOutput(
             self,
@@ -95,6 +95,10 @@ class ScreenCapture: NSObject, SCStreamOutput {
         frameLock.lock()
         defer { frameLock.unlock() }
         return latestFrame
+    }
+
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        print("❌ Stream зупинився з помилкою: \(error)")
     }
 
     // MARK: - Errors
