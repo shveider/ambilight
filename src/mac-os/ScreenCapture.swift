@@ -4,7 +4,7 @@ import ScreenCaptureKit
 import CoreGraphics
 import Foundation
 
-class ScreenCapture: NSObject, SCStreamOutput {
+class ScreenCapture: NSObject, SCStreamOutput, SCStreamDelegate {
 
     private var stream: SCStream?
     private var latestFrame: CGImage?
