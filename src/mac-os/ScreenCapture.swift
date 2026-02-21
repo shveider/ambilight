@@ -10,6 +10,10 @@ class ScreenCapture: NSObject, SCStreamOutput {
     private var latestFrame: CGImage?
     private let frameLock = NSLock()
 
+    // FPS лічильник
+    private var frameCount = 0
+    private var fpsLastTime = Date()
+
     // CIContext створюється ОДИН РАЗ
     private let ciContext = CIContext(options: [
         .useSoftwareRenderer: false,  // використовуємо GPU
@@ -72,6 +76,16 @@ class ScreenCapture: NSObject, SCStreamOutput {
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         guard type == .screen,
         let imageBuffer = sampleBuffer.imageBuffer else { return }
+
+        // FPS рахуємо тут — до будь-якої обробки
+        frameCount += 1
+        let now = Date()
+        let elapsed = now.timeIntervalSince(fpsLastTime)
+        if elapsed >= 1.0 {
+            print("📷 Capture FPS: \(frameCount)")
+            frameCount = 0
+            fpsLastTime = now
+        }
 
         // Використовуємо autoreleasepool щоб CIImage звільнявся одразу після кадру
         autoreleasepool {
