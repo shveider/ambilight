@@ -10,7 +10,7 @@ app.setActivationPolicy(.regular)
 app.activate(ignoringOtherApps: true)
 
 let capture       = ScreenCapture()
-let colorReader   = ColorReader(zonesLeftRight: 32, zonesTopBottom: 57, stripThickness: 10)
+let colorReader   = ColorReader(zonesLeftRight: 32, zonesTopBottom: 57, stripThickness: 8)
 let arduinoFinder = ArduinoPathFinder()
 let arduino       = arduinoFinder.findPort().map { ArduinoSender(portPath: $0) }
 var frameCount    = 0

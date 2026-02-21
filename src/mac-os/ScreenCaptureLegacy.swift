@@ -21,11 +21,11 @@ class ScreenCapture: ScreenCaptureProtocol {
 
     func startCapture() async throws {
         await MainActor.run {
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 20.0, repeats: true) { [weak self] _ in
                 self?.captureFrame()
             }
         }
-        print("✅ Legacy режим — 30 FPS")
+        print("✅ Legacy режим — 20 FPS")
     }
 
     func stopCapture() async throws {

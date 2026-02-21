@@ -2,7 +2,7 @@
 
 #define LED_PIN 6
 #define NUM_LEDS 178
-#define BRIGHTNESS 220
+#define BRIGHTNESS 180
 
 #define START_BYTE 255
 #define END_BYTE 254
@@ -19,6 +19,8 @@ void setup() {
   Serial.begin(230400);
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
+
+  runStartupTest();
 }
 
 
@@ -56,5 +58,22 @@ void applyFrame() {
     );
   }
 
+  FastLED.show();
+}
+
+void runStartupTest() {
+  const int DURATION_MS = 2000;
+  const int STEPS = 256;
+  const int DELAY = DURATION_MS / STEPS;
+
+  // Прогін по спектру (HSV — H від 0 до 255)
+  for (int h = 0; h < 256; h++) {
+    fill_solid(leds, NUM_LEDS, CHSV(h, 255, 255));
+    FastLED.show();
+    delay(DELAY);
+  }
+
+  // Гасимо після тесту
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
   FastLED.show();
 }
