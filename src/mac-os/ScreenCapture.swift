@@ -34,15 +34,15 @@ class ScreenCapture: NSObject, SCStreamOutput, SCStreamDelegate {
             throw CaptureError.noDisplayFound
         }
 
+        print("🖥 Дисплей: \(display.width)x\(display.height)")
+
         let filter = SCContentFilter(display: display, excludingWindows: [])
 
         let config = SCStreamConfiguration()
-        config.width = display.width
-        config.height = display.height
+        // Не обмежуємо розмір — беремо що дає система
         config.minimumFrameInterval = CMTime(value: 1, timescale: 40)
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.showsCursor = false
-        // Вимикаємо чергу кадрів щоб не накопичувались в памʼяті
         config.queueDepth = 3
 
         stream = SCStream(filter: filter, configuration: config, delegate: self)
