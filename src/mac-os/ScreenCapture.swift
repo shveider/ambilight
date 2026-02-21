@@ -11,7 +11,7 @@ class ScreenCapture: NSObject, SCStreamOutput {
     private let frameLock = NSLock()
 
     // FPS лічильник
-    private var frameCount = 0
+    private(set) var frameCount = 0
     private var fpsLastTime = Date()
 
     // CIContext створюється ОДИН РАЗ

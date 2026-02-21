@@ -37,6 +37,8 @@ Task {
 
         // Чекаємо секунду і перевіряємо чи є кадри
         try await Task.sleep(nanoseconds: 1_000_000_000)
+        let kitCapture = capture as? ScreenCaptureKitImpl
+        print("⏱ Кадрів отримано за 1 секунду: \(kitCapture?.frameCount ?? 0)")
     } catch {
         print("❌ Помилка захоплення екрану: \(error)")
     }
