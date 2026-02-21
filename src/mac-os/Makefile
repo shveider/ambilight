@@ -1,21 +1,22 @@
 SOURCES_COMMON = AmbilightView.swift ArduinoPathFinder.swift ArduinoSender.swift main.swift
 OUTPUT = ambilight
 
-# macOS 12.3+ (M1, Intel Monterey+)
-build:
-	swiftc -O -target arm64-apple-macos12.3 ScreenCapture.swift ColorReader.swift AmbilightView.swift ArduinoPathFinder.swift ArduinoSender.swift main.swift -o ambilight-arm64
-	swiftc -O -target x86_64-apple-macos12.3 ScreenCapture.swift ColorReader.swift AmbilightView.swift ArduinoPathFinder.swift ArduinoSender.swift main.swift -o ambilight-x86
-	lipo -create ambilight-arm64 ambilight-x86 -output ambilight
-	rm ambilight-arm64 ambilight-x86
+# M1 (arm64)
+build-m1:
+	swiftc -O ScreenCapture.swift ColorReader.swift $(SOURCES_COMMON) -o $(OUTPUT)
 
-# macOS 11 Big Sur (Intel)
+# Intel Monterey+ (x86_64)
+build-intel:
+	swiftc -O -target x86_64-apple-macos12.3 ScreenCapture.swift ColorReader.swift $(SOURCES_COMMON) -o $(OUTPUT)
+
+# Big Sur Intel
 build-bigsur:
 	swiftc -O ScreenCaptureLegacy.swift ColorReaderLegacy.swift $(SOURCES_COMMON) -o $(OUTPUT)
 
-run: build
+run-m1: build-m1
 	./$(OUTPUT)
 
-run-bigsur: build-bigsur
+run-intel: build-intel
 	./$(OUTPUT)
 
 clean:
