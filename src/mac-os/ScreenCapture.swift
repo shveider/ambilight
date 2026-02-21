@@ -74,8 +74,9 @@ class ScreenCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     // MARK: - SCStreamOutput
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
+        print("stream 1")
         guard type == .screen, let imageBuffer = sampleBuffer.imageBuffer else { return }
-
+        print("stream 2")
         // FPS
         frameCount += 1
         let now = Date()
@@ -84,7 +85,7 @@ class ScreenCapture: NSObject, SCStreamOutput, SCStreamDelegate {
             frameCount = 0
             fpsLastTime = now
         }
-
+        print("stream 3")
         // Передаємо pixelBuffer напряму — без CGImage конвертації
         onFrame?(imageBuffer)
     }
@@ -92,8 +93,11 @@ class ScreenCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     // MARK: - Get Latest Frame
 
     func getLatestFrame() -> CGImage? {
+        print("getLatestFrame 1")
         frameLock.lock()
+        print("getLatestFrame 2")
         defer { frameLock.unlock() }
+        print("getLatestFrame 3")
         return latestFrame
     }
 
