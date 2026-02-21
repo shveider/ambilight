@@ -33,7 +33,9 @@ Task {
 
 Task {
     do {
+        print("🔄 Починаємо захоплення...")
         try await capture.startCapture()
+        print("✅ Захоплення активне")
     } catch {
         print("❌ Помилка захоплення екрану: \(error)")
     }
