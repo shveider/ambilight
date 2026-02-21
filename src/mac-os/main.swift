@@ -4,8 +4,9 @@ import AppKit
 let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 
-let ambilightWindow = AmbilightWindow(width: 900, height: 560)
-ambilightWindow.makeKeyAndOrderFront(nil)
+// Window is needed for debug
+//let ambilightWindow = AmbilightWindow(width: 900, height: 560)
+//ambilightWindow.makeKeyAndOrderFront(nil)
 app.activate(ignoringOtherApps: true)
 
 let capture       = ScreenCapture()
@@ -20,7 +21,7 @@ capture.onFrame = { cgImage in
     frameCount += 1
     let elapsed = Date().timeIntervalSince(startTime)
     let colors = colorReader.readColors(from: cgImage)
-    ambilightWindow.updateColors(colors)
+//    ambilightWindow.updateColors(colors)
     arduino?.sendColors(colors)
 }
 

@@ -15,27 +15,24 @@ class ArduinoSender {
     // MARK: - Connect
 
     func connect() throws {
-        // Відкриваємо serial port
-        let fd = open(portPath, O_RDWR | O_NOCTTY | O_NONBLOCK)
+        // Прибираємо O_NONBLOCK — порт має блокувати якщо буфер заповнений
+        let fd = open(portPath, O_RDWR | O_NOCTTY)
         guard fd != -1 else {
             throw SerialError.cannotOpen(portPath)
         }
 
-        // Налаштовуємо baudrate 115200
         var options = termios()
         tcgetattr(fd, &options)
 
         cfsetispeed(&options, speed_t(B115200))
         cfsetospeed(&options, speed_t(B115200))
 
-        // 8N1 — 8 біт, без парності, 1 стоп біт
         options.c_cflag &= ~UInt(PARENB)
         options.c_cflag &= ~UInt(CSTOPB)
         options.c_cflag &= ~UInt(CSIZE)
         options.c_cflag |=  UInt(CS8)
         options.c_cflag |=  UInt(CREAD | CLOCAL)
 
-        // Raw mode
         options.c_lflag &= ~UInt(ICANON | ECHO | ECHOE | ISIG)
         options.c_iflag &= ~UInt(IXON | IXOFF | IXANY)
         options.c_oflag &= ~UInt(OPOST)
@@ -45,7 +42,6 @@ class ArduinoSender {
         serialPort = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
         print("✅ Підключено до Arduino: \(portPath)")
 
-        // Чекаємо поки Arduino перезавантажиться після підключення
         Thread.sleep(forTimeInterval: 2.0)
     }
 
@@ -58,23 +54,22 @@ class ArduinoSender {
             return
         }
 
-        // Формуємо пакет: START + 178*3 байти RGB + END
         var packet = Data()
         packet.reserveCapacity(1 + 178 * 3 + 1)
-
         packet.append(START_BYTE)
-
         for rgb in colors {
-            // Якщо значення == 255 або 254 — зменшуємо на 1
-            // щоб не конфліктувати зі START/END байтами
             packet.append(clamp(rgb.r))
             packet.append(clamp(rgb.g))
             packet.append(clamp(rgb.b))
         }
-
         packet.append(END_BYTE)
 
-        port.write(packet)
+        // Обгортаємо в do-catch щоб не крашитись
+        do {
+            try port.write(packet)
+        } catch {
+            print("⚠️ Помилка запису в порт: \(error)")
+        }
     }
 
     // MARK: - Disconnect
