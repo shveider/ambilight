@@ -8,6 +8,12 @@ class ArduinoSender {
     private var serialPort: FileHandle?
     private let portPath: String
 
+    // Окрема черга для відправки
+    private let sendQueue = DispatchQueue(label: "arduino.send", qos: .userInteractive)
+
+    // Якщо true — відправка ще йде, пропускаємо кадр
+    private var isSending = false
+
     init(portPath: String) {
         self.portPath = portPath
     }
@@ -48,11 +54,10 @@ class ArduinoSender {
     // MARK: - Send Frame
 
     func sendColors(_ colors: [RGB]) {
-        guard let port = serialPort else { return }
-        guard colors.count == 178 else {
-            print("⚠️ Очікується 178 кольорів, отримано \(colors.count)")
-            return
-        }
+        guard serialPort != nil else { return }
+
+        // Якщо попередній кадр ще відправляється — пропускаємо
+        guard !isSending else { return }
 
         var packet = Data()
         packet.reserveCapacity(1 + 178 * 3 + 1)
@@ -64,11 +69,15 @@ class ArduinoSender {
         }
         packet.append(END_BYTE)
 
-        // Обгортаємо в do-catch щоб не крашитись
-        do {
-            try port.write(packet)
-        } catch {
-            print("⚠️ Помилка запису в порт: \(error)")
+        isSending = true
+        sendQueue.async { [weak self] in
+            guard let self else { return }
+            do {
+                try self.serialPort?.write(packet)
+            } catch {
+                print("⚠️ Помилка запису в порт: \(error)")
+            }
+            self.isSending = false
         }
     }
 
