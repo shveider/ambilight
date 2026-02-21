@@ -12,16 +12,9 @@ protocol ScreenCaptureProtocol {
 enum CaptureError: Error {
     case noDisplayFound
 }
-
-class ScreenCapture {
-    static func make() -> ScreenCaptureProtocol {
-        return ScreenCaptureLegacyImpl()
-    }
-}
-
 // MARK: - LegacyImpl
 
-class ScreenCaptureLegacyImpl: ScreenCaptureProtocol {
+class ScreenCapture: ScreenCaptureProtocol {
 
     var onFrame: ((CGImage) -> Void)?
     private var timer: Timer?
