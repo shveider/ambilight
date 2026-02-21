@@ -55,6 +55,12 @@ class ScreenCapture: NSObject, SCStreamOutput, SCStreamDelegate {
 
         try await stream?.startCapture()
         print("✅ Захоплення розпочато — 40 FPS")
+
+
+        // Чекаємо 3 секунди і перевіряємо стан stream
+        try await Task.sleep(nanoseconds: 3_000_000_000)
+        print("🔍 Stream існує: \(stream != nil)")
+        print("🔍 frameCount: \(frameCount)")
     }
 
     // MARK: - Stop Capture
