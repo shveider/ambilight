@@ -3,3 +3,7 @@ package-lock.json
 .idea
 src/mac-os/ambilight
 src/.DS_Store
+mac-os/ambilight
+mac-os/ambilight-arm64
+mac-os/ambilight-x86
+mac-os/*.app

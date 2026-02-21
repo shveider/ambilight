@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Ambilight needs screen capture</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.ambilight.app</string>
+    <key>CFBundleName</key>
+    <string>Ambilight</string>
+</dict>
+</plist>
