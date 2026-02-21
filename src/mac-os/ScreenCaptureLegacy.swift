@@ -19,6 +19,10 @@ class ScreenCapture: ScreenCaptureProtocol {
     var onFrame: ((CGImage) -> Void)?
     private var timer: Timer?
 
+    // FPS лічильник
+    private var frameCount = 0
+    private var fpsLastTime = Date()
+
     func startCapture() async throws {
         await MainActor.run {
             timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 20.0, repeats: true) { [weak self] _ in
@@ -37,6 +41,16 @@ class ScreenCapture: ScreenCaptureProtocol {
     }
 
     private func captureFrame() {
+        // FPS рахуємо тут — до будь-якої обробки
+        frameCount += 1
+        let now = Date()
+        let elapsed = now.timeIntervalSince(fpsLastTime)
+        if elapsed >= 1.0 {
+            print("📷 Capture FPS: \(frameCount)")
+            frameCount = 0
+            fpsLastTime = now
+        }
+
         autoreleasepool {
             let displayID = CGMainDisplayID()
             // CGDisplayCreateImage доступний на Big Sur (macOS 11)
