@@ -20,7 +20,7 @@ class ScreenCapture: NSObject, SCStreamOutput {
         .cacheIntermediates: false     // не кешуємо проміжні результати
     ])
 
-    var onFrame: ((CGImage) -> Void)?
+    var onFrame: ((CVPixelBuffer) -> Void)?
 
     // MARK: - Start Capture
 
@@ -74,31 +74,19 @@ class ScreenCapture: NSObject, SCStreamOutput {
     // MARK: - SCStreamOutput
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .screen,
-        let imageBuffer = sampleBuffer.imageBuffer else { return }
+        guard type == .screen, let imageBuffer = sampleBuffer.imageBuffer else { return }
 
-        // FPS рахуємо тут — до будь-якої обробки
+        // FPS
         frameCount += 1
         let now = Date()
-        let elapsed = now.timeIntervalSince(fpsLastTime)
-        if elapsed >= 1.0 {
-            print("📷 Capture FPS: \(frameCount)")
+        if now.timeIntervalSince(fpsLastTime) >= 1.0 {
+            print("📷 FPS: \(frameCount)")
             frameCount = 0
             fpsLastTime = now
         }
 
-        // Використовуємо autoreleasepool щоб CIImage звільнявся одразу після кадру
-        autoreleasepool {
-            let ciImage = CIImage(cvPixelBuffer: imageBuffer)
-
-            guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
-
-            frameLock.lock()
-            latestFrame = cgImage
-            frameLock.unlock()
-
-            onFrame?(cgImage)
-        }
+        // Передаємо pixelBuffer напряму — без CGImage конвертації
+        onFrame?(imageBuffer)
     }
 
     // MARK: - Get Latest Frame
