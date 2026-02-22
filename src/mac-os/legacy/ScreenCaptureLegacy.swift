@@ -1,3 +1,6 @@
+import CoreGraphics
+import Foundation
+
 class ScreenCapture {
     var onFrame: ((CGDirectDisplayID) -> Void)?
     private var timer: Timer?
