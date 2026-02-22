@@ -1,20 +1,16 @@
-import CoreGraphics
-import Foundation
-
-struct RGB {
-    let r: UInt8
-    let g: UInt8
-    let b: UInt8
-}
-
 class ColorReader {
 
     let zonesLeftRightCount: Int
     let zonesTopBottomCount: Int
     let stripThicknessCount: Int
 
-    // Загальна кількість зон
     var totalZones: Int { (zonesLeftRightCount * 2) + (zonesTopBottomCount * 2) }
+
+    // Кешовані буфери — виділяються один раз
+    private var leftBuf:   [UInt8] = []
+    private var rightBuf:  [UInt8] = []
+    private var topBuf:    [UInt8] = []
+    private var bottomBuf: [UInt8] = []
 
     init(zonesLeftRight: Int, zonesTopBottom: Int, stripThickness: Int) {
         self.zonesLeftRightCount = zonesLeftRight
@@ -22,73 +18,88 @@ class ColorReader {
         self.stripThicknessCount = stripThickness
     }
 
-    // MARK: - Головна функція
-    // Повертає масив RGB по годинниковій стрілці:
-    // [0...31]   LEFT:   знизу вгору
-    // [32...88]  TOP:    зліва направо
-    // [89...120] RIGHT:  зверху вниз
-    // [121...177] BOTTOM: справа наліво
+    func readColors(displayID: CGDirectDisplayID) -> [RGB] {
+        let screenWidth  = CGDisplayPixelsWide(displayID)
+        let screenHeight = CGDisplayPixelsHigh(displayID)
+        let t = stripThicknessCount
 
-    func readColors(from image: CGImage) -> [RGB] {
-        let width = image.width
-        let height = image.height
-
-        // Захоплюємо тільки крайові смуги — не весь екран
+        // Захоплюємо тільки 4 смуги по краях — НЕ весь екран
         guard
-        let leftStrip  = image.cropping(to: CGRect(x: 0, y: 0, width: stripThicknessCount, height: height)),
-        let rightStrip = image.cropping(to: CGRect(x: width - stripThicknessCount, y: 0, width: stripThicknessCount, height: height)),
-        let topStrip   = image.cropping(to: CGRect(x: 0, y: 0, width: width, height: stripThicknessCount)),
-        let bottomStrip = image.cropping(to: CGRect(x: 0, y: height - stripThicknessCount, width: width, height: stripThicknessCount))
+        let leftImg   = CGDisplayCreateImageForRect(displayID, CGRect(x: 0, y: 0, width: t, height: screenHeight)),
+        let rightImg  = CGDisplayCreateImageForRect(displayID, CGRect(x: screenWidth - t, y: 0, width: t, height: screenHeight)),
+        let topImg    = CGDisplayCreateImageForRect(displayID, CGRect(x: 0, y: 0, width: screenWidth, height: t)),
+        let bottomImg = CGDisplayCreateImageForRect(displayID, CGRect(x: 0, y: screenHeight - t, width: screenWidth, height: t))
         else { return [] }
 
+        // Заповнюємо кешовані буфери (без реалокації якщо розмір не змінився)
         guard
-        let leftPixels   = getRawPixels(from: leftStrip),
-        let rightPixels  = getRawPixels(from: rightStrip),
-        let topPixels    = getRawPixels(from: topStrip),
-        let bottomPixels = getRawPixels(from: bottomStrip)
+        fillPixels(from: leftImg,   into: &leftBuf),
+        fillPixels(from: rightImg,  into: &rightBuf),
+        fillPixels(from: topImg,    into: &topBuf),
+        fillPixels(from: bottomImg, into: &bottomBuf)
         else { return [] }
 
         var results = [RGB]()
         results.reserveCapacity(totalZones)
 
-        // LEFT: знизу вгору — читаємо з leftStrip (ширина = stripThicknessCount)
+        // LEFT: знизу вгору
         for i in 0..<zonesLeftRightCount {
             let flipped = zonesLeftRightCount - 1 - i
-            let zoneHeight = height / zonesLeftRightCount
-            let rect = CGRect(x: 0, y: flipped * zoneHeight, width: stripThicknessCount, height: zoneHeight)
-            results.append(averageColor(in: rect, pixels: leftPixels, imageWidth: stripThicknessCount))
+            let zoneH = screenHeight / zonesLeftRightCount
+            let rect = CGRect(x: 0, y: flipped * zoneH, width: t, height: zoneH)
+            results.append(averageColor(in: rect, pixels: leftBuf, imageWidth: t))
         }
 
-        // TOP: зліва направо — читаємо з topStrip (висота = stripThicknessCount)
+        // TOP: зліва направо
         for i in 0..<zonesTopBottomCount {
-            let zoneWidth = width / zonesTopBottomCount
-            let rect = CGRect(x: i * zoneWidth, y: 0, width: zoneWidth, height: stripThicknessCount)
-            results.append(averageColor(in: rect, pixels: topPixels, imageWidth: width))
+            let zoneW = screenWidth / zonesTopBottomCount
+            let rect = CGRect(x: i * zoneW, y: 0, width: zoneW, height: t)
+            results.append(averageColor(in: rect, pixels: topBuf, imageWidth: screenWidth))
         }
 
-        // RIGHT: зверху вниз — читаємо з rightStrip
+        // RIGHT: зверху вниз
         for i in 0..<zonesLeftRightCount {
-            let zoneHeight = height / zonesLeftRightCount
-            let rect = CGRect(x: 0, y: i * zoneHeight, width: stripThicknessCount, height: zoneHeight)
-            results.append(averageColor(in: rect, pixels: rightPixels, imageWidth: stripThicknessCount))
+            let zoneH = screenHeight / zonesLeftRightCount
+            let rect = CGRect(x: 0, y: i * zoneH, width: t, height: zoneH)
+            results.append(averageColor(in: rect, pixels: rightBuf, imageWidth: t))
         }
 
-        // BOTTOM: справа наліво — читаємо з bottomStrip
+        // BOTTOM: справа наліво
         for i in 0..<zonesTopBottomCount {
             let flipped = zonesTopBottomCount - 1 - i
-            let zoneWidth = width / zonesTopBottomCount
-            let rect = CGRect(x: flipped * zoneWidth, y: 0, width: zoneWidth, height: stripThicknessCount)
-            results.append(averageColor(in: rect, pixels: bottomPixels, imageWidth: width))
+            let zoneW = screenWidth / zonesTopBottomCount
+            let rect = CGRect(x: flipped * zoneW, y: 0, width: zoneW, height: t)
+            results.append(averageColor(in: rect, pixels: bottomBuf, imageWidth: screenWidth))
         }
 
         return results
     }
 
-    // MARK: - Середній колір
+    // MARK: - Заповнює існуючий буфер (реалокація тільки при зміні розміру)
+    private func fillPixels(from image: CGImage, into buffer: inout [UInt8]) -> Bool {
+        let w = image.width
+        let h = image.height
+        let needed = w * h * 4
+
+        if buffer.count != needed {
+            buffer = [UInt8](repeating: 0, count: needed)
+        }
+
+        guard let context = CGContext(
+            data: &buffer,
+            width: w, height: h,
+            bitsPerComponent: 8,
+            bytesPerRow: w * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+        ) else { return false }
+
+        context.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return true
+    }
 
     private func averageColor(in rect: CGRect, pixels: [UInt8], imageWidth: Int) -> RGB {
         var totalR = 0, totalG = 0, totalB = 0, count = 0
-
         for y in Int(rect.minY)..<Int(rect.maxY) {
             for x in Int(rect.minX)..<Int(rect.maxX) {
                 let offset = (y * imageWidth + x) * 4
@@ -98,30 +109,7 @@ class ColorReader {
                 count += 1
             }
         }
-
         guard count > 0 else { return RGB(r: 0, g: 0, b: 0) }
         return RGB(r: UInt8(totalR / count), g: UInt8(totalG / count), b: UInt8(totalB / count))
-    }
-
-    // MARK: - Сирі пікселі
-
-    private func getRawPixels(from image: CGImage) -> [UInt8]? {
-        let width = image.width
-        let height = image.height
-        let bytesPerRow = width * 4
-        var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
-
-        guard let context = CGContext(
-            data: &pixels,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
-        ) else { return nil }
-
-        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        return pixels
     }
 }
