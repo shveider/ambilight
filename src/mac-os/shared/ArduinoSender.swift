@@ -54,6 +54,7 @@ class ArduinoSender {
     // MARK: - Send Frame
 
     func sendColors(_ colors: [RGB]) {
+        print("LED count:", colors.count)
         guard serialPort != nil else { return }
 
         // Якщо попередній кадр ще відправляється — пропускаємо
