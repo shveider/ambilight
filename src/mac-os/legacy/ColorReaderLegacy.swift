@@ -1,6 +1,12 @@
 import CoreGraphics
 import Foundation
 
+struct RGB {
+    let r: UInt8
+    let g: UInt8
+    let b: UInt8
+}
+
 class ColorReader {
 
     let zonesLeftRightCount: Int
@@ -9,7 +15,6 @@ class ColorReader {
 
     var totalZones: Int { (zonesLeftRightCount * 2) + (zonesTopBottomCount * 2) }
 
-    // Кешовані буфери — виділяються один раз
     private var leftBuf:   [UInt8] = []
     private var rightBuf:  [UInt8] = []
     private var topBuf:    [UInt8] = []
@@ -26,15 +31,13 @@ class ColorReader {
         let screenHeight = CGDisplayPixelsHigh(displayID)
         let t = stripThicknessCount
 
-        // Захоплюємо тільки 4 смуги по краях — НЕ весь екран
         guard
-        let leftImg   = CGDisplayCreateImageForRect(displayID, CGRect(x: 0, y: 0, width: t, height: screenHeight)),
-        let rightImg  = CGDisplayCreateImageForRect(displayID, CGRect(x: screenWidth - t, y: 0, width: t, height: screenHeight)),
-        let topImg    = CGDisplayCreateImageForRect(displayID, CGRect(x: 0, y: 0, width: screenWidth, height: t)),
-        let bottomImg = CGDisplayCreateImageForRect(displayID, CGRect(x: 0, y: screenHeight - t, width: screenWidth, height: t))
+        let leftImg   = CGDisplayCreateImage(displayID, rect: CGRect(x: 0, y: 0, width: t, height: screenHeight)),
+        let rightImg  = CGDisplayCreateImage(displayID, rect: CGRect(x: screenWidth - t, y: 0, width: t, height: screenHeight)),
+        let topImg    = CGDisplayCreateImage(displayID, rect: CGRect(x: 0, y: 0, width: screenWidth, height: t)),
+        let bottomImg = CGDisplayCreateImage(displayID, rect: CGRect(x: 0, y: screenHeight - t, width: screenWidth, height: t))
         else { return [] }
 
-        // Заповнюємо кешовані буфери (без реалокації якщо розмір не змінився)
         guard
         fillPixels(from: leftImg,   into: &leftBuf),
         fillPixels(from: rightImg,  into: &rightBuf),
@@ -49,36 +52,35 @@ class ColorReader {
         for i in 0..<zonesLeftRightCount {
             let flipped = zonesLeftRightCount - 1 - i
             let zoneH = screenHeight / zonesLeftRightCount
-            let rect = CGRect(x: 0, y: flipped * zoneH, width: t, height: zoneH)
-            results.append(averageColor(in: rect, pixels: leftBuf, imageWidth: t))
+            results.append(averageColor(in: CGRect(x: 0, y: flipped * zoneH, width: t, height: zoneH),
+                pixels: leftBuf, imageWidth: t))
         }
 
         // TOP: зліва направо
         for i in 0..<zonesTopBottomCount {
             let zoneW = screenWidth / zonesTopBottomCount
-            let rect = CGRect(x: i * zoneW, y: 0, width: zoneW, height: t)
-            results.append(averageColor(in: rect, pixels: topBuf, imageWidth: screenWidth))
+            results.append(averageColor(in: CGRect(x: i * zoneW, y: 0, width: zoneW, height: t),
+                pixels: topBuf, imageWidth: screenWidth))
         }
 
         // RIGHT: зверху вниз
         for i in 0..<zonesLeftRightCount {
             let zoneH = screenHeight / zonesLeftRightCount
-            let rect = CGRect(x: 0, y: i * zoneH, width: t, height: zoneH)
-            results.append(averageColor(in: rect, pixels: rightBuf, imageWidth: t))
+            results.append(averageColor(in: CGRect(x: 0, y: i * zoneH, width: t, height: zoneH),
+                pixels: rightBuf, imageWidth: t))
         }
 
         // BOTTOM: справа наліво
         for i in 0..<zonesTopBottomCount {
             let flipped = zonesTopBottomCount - 1 - i
             let zoneW = screenWidth / zonesTopBottomCount
-            let rect = CGRect(x: flipped * zoneW, y: 0, width: zoneW, height: t)
-            results.append(averageColor(in: rect, pixels: bottomBuf, imageWidth: screenWidth))
+            results.append(averageColor(in: CGRect(x: flipped * zoneW, y: 0, width: zoneW, height: t),
+                pixels: bottomBuf, imageWidth: screenWidth))
         }
 
         return results
     }
 
-    // MARK: - Заповнює існуючий буфер (реалокація тільки при зміні розміру)
     private func fillPixels(from image: CGImage, into buffer: inout [UInt8]) -> Bool {
         let w = image.width
         let h = image.height
@@ -90,7 +92,8 @@ class ColorReader {
 
         guard let context = CGContext(
             data: &buffer,
-            width: w, height: h,
+            width: w,
+            height: h,
             bitsPerComponent: 8,
             bytesPerRow: w * 4,
             space: CGColorSpaceCreateDeviceRGB(),
