@@ -2,7 +2,7 @@
 
 #define LED_PIN 6
 #define NUM_LEDS 178
-#define BRIGHTNESS 180
+#define BRIGHTNESS 160
 
 #define START_BYTE 255
 #define END_BYTE 254
@@ -62,18 +62,33 @@ void applyFrame() {
 }
 
 void runStartupTest() {
-  const int DURATION_MS = 2000;
-  const int STEPS = 256;
-  const int DELAY = DURATION_MS / STEPS;
+  const int DURATION_MS = 3000;   // тривалість тесту
+  const int FRAME_DELAY = 20;     // швидкість анімації
+  const int STEPS = DURATION_MS / FRAME_DELAY;
 
-  // Прогін по спектру (HSV — H від 0 до 255)
-  for (int h = 0; h < 256; h++) {
-    fill_solid(leds, NUM_LEDS, CHSV(h, 255, 255));
+  uint8_t baseHue = 0;
+
+  for (int step = 0; step < STEPS; step++) {
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+      // зсув кольору по довжині стрічки
+      uint8_t hue = baseHue + (i * 256 / NUM_LEDS);
+      leds[i] = CHSV(hue, 255, 255);
+    }
+
     FastLED.show();
-    delay(DELAY);
+    baseHue++;        // рухаємо спектр вперед
+    delay(FRAME_DELAY);
   }
 
-  // Гасимо після тесту
+  // Плавне згасання
+  for (int b = BRIGHTNESS; b >= 0; b -= 5) {
+    FastLED.setBrightness(b);
+    FastLED.show();
+    delay(15);
+  }
+
+  FastLED.setBrightness(BRIGHTNESS);
   fill_solid(leds, NUM_LEDS, CRGB::Black);
   FastLED.show();
 }

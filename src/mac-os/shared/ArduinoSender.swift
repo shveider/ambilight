@@ -54,28 +54,17 @@ class ArduinoSender {
     // MARK: - Send Frame
 
     func sendColors(_ colors: [RGB]) {
-        print("LED count:", colors.count)
-        guard serialPort != nil else { return }
+        guard let serialPort else { return }
 
-        // Якщо попередній кадр ще відправляється — пропускаємо
-        guard !isSending else { return }
+        var packet = Data(capacity: colors.count * 3)
 
-        var packet = Data()
-        packet.reserveCapacity(1 + 178 * 3 + 1)
-        packet.append(START_BYTE)
         for rgb in colors {
-            packet.append(clamp(rgb.r))
-            packet.append(clamp(rgb.g))
-            packet.append(clamp(rgb.b))
+            packet.append(rgb.r)
+            packet.append(rgb.g)
+            packet.append(rgb.b)
         }
-        packet.append(END_BYTE)
 
-        isSending = true
-        sendQueue.async { [weak self] in
-            guard let self else { return }
-            self.serialPort?.write(packet)
-            self.isSending = false
-        }
+        serialPort.write(packet)
     }
 
     // MARK: - Disconnect
