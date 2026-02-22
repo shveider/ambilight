@@ -1,8 +1,6 @@
 import CoreGraphics
 import Foundation
 
-// MARK: - Protocol (дублюємо щоб файл був самодостатній)
-
 protocol ScreenCaptureProtocol {
     var onFrame: ((CGImage) -> Void)? { get set }
     func startCapture() async throws
@@ -12,14 +10,14 @@ protocol ScreenCaptureProtocol {
 enum CaptureError: Error {
     case noDisplayFound
 }
-// MARK: - LegacyImpl
 
 class ScreenCapture: ScreenCaptureProtocol {
 
     var onFrame: ((CGImage) -> Void)?
     private var timer: Timer?
+    private let processQueue = DispatchQueue(label: "capture.process", qos: .userInteractive)
+    private var isProcessing = false
 
-    // FPS лічильник
     private var frameCount = 0
     private var fpsLastTime = Date()
 
@@ -28,6 +26,7 @@ class ScreenCapture: ScreenCaptureProtocol {
             timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 20.0, repeats: true) { [weak self] _ in
                 self?.captureFrame()
             }
+            timer?.tolerance = 0.005
         }
         print("✅ Legacy режим — 20 FPS")
     }
@@ -41,21 +40,25 @@ class ScreenCapture: ScreenCaptureProtocol {
     }
 
     private func captureFrame() {
-        // FPS рахуємо тут — до будь-якої обробки
+        // Якщо попередній кадр ще обробляється — пропускаємо
+        guard !isProcessing else { return }
+
         frameCount += 1
         let now = Date()
-        let elapsed = now.timeIntervalSince(fpsLastTime)
-        if elapsed >= 1.0 {
+        if now.timeIntervalSince(fpsLastTime) >= 1.0 {
             print("📷 Capture FPS: \(frameCount)")
             frameCount = 0
             fpsLastTime = now
         }
 
-        autoreleasepool {
-            let displayID = CGMainDisplayID()
-            // CGDisplayCreateImage доступний на Big Sur (macOS 11)
-            guard let image = CGDisplayCreateImage(displayID) else { return }
-            onFrame?(image)
-        }
-    }
+        // Захоплюємо на головному потоці
+        let displayID = CGMainDisplayID()
+        guard let image = CGDisplayCreateImage(displayID) else { return }
+
+        // Обробляємо на фоновому
+        isProcessing = true
+        processQueue.async { [weak self] in
+    autoreleasepool {
+    self?.onFrame?(image)
 }
+self?.isProcessing = false

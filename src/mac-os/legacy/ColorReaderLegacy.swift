@@ -33,42 +33,52 @@ class ColorReader {
         let width = image.width
         let height = image.height
 
-        guard let pixelData = getRawPixels(from: image) else { return [] }
+        // Захоплюємо тільки крайові смуги — не весь екран
+        guard
+        let leftStrip  = image.cropping(to: CGRect(x: 0, y: 0, width: stripThicknessCount, height: height)),
+        let rightStrip = image.cropping(to: CGRect(x: width - stripThicknessCount, y: 0, width: stripThicknessCount, height: height)),
+        let topStrip   = image.cropping(to: CGRect(x: 0, y: 0, width: width, height: stripThicknessCount)),
+        let bottomStrip = image.cropping(to: CGRect(x: 0, y: height - stripThicknessCount, width: width, height: stripThicknessCount))
+        else { return [] }
+
+        guard
+        let leftPixels   = getRawPixels(from: leftStrip),
+        let rightPixels  = getRawPixels(from: rightStrip),
+        let topPixels    = getRawPixels(from: topStrip),
+        let bottomPixels = getRawPixels(from: bottomStrip)
+        else { return [] }
 
         var results = [RGB]()
         results.reserveCapacity(totalZones)
 
-        // 1. LEFT: знизу вгору (index 0 = низ)
-        // pixelData: y=0 це верх, тому інвертуємо
+        // LEFT: знизу вгору — читаємо з leftStrip (ширина = stripThicknessCount)
         for i in 0..<zonesLeftRightCount {
             let flipped = zonesLeftRightCount - 1 - i
             let zoneHeight = height / zonesLeftRightCount
             let rect = CGRect(x: 0, y: flipped * zoneHeight, width: stripThicknessCount, height: zoneHeight)
-            results.append(averageColor(in: rect, pixels: pixelData, imageWidth: width))
+            results.append(averageColor(in: rect, pixels: leftPixels, imageWidth: stripThicknessCount))
         }
 
-        // 2. TOP: зліва направо (index 0 = лівий)
-        // pixelData: y=0 це верх екрану
+        // TOP: зліва направо — читаємо з topStrip (висота = stripThicknessCount)
         for i in 0..<zonesTopBottomCount {
             let zoneWidth = width / zonesTopBottomCount
             let rect = CGRect(x: i * zoneWidth, y: 0, width: zoneWidth, height: stripThicknessCount)
-            results.append(averageColor(in: rect, pixels: pixelData, imageWidth: width))
+            results.append(averageColor(in: rect, pixels: topPixels, imageWidth: width))
         }
 
-        // 3. RIGHT: зверху вниз (index 0 = верх)
+        // RIGHT: зверху вниз — читаємо з rightStrip
         for i in 0..<zonesLeftRightCount {
             let zoneHeight = height / zonesLeftRightCount
-            let rect = CGRect(x: width - stripThicknessCount, y: i * zoneHeight, width: stripThicknessCount, height: zoneHeight)
-            results.append(averageColor(in: rect, pixels: pixelData, imageWidth: width))
+            let rect = CGRect(x: 0, y: i * zoneHeight, width: stripThicknessCount, height: zoneHeight)
+            results.append(averageColor(in: rect, pixels: rightPixels, imageWidth: stripThicknessCount))
         }
 
-        // 4. BOTTOM: справа наліво (index 0 = правий)
-        // pixelData: y=0 це верх, тому низ = height - thickness
+        // BOTTOM: справа наліво — читаємо з bottomStrip
         for i in 0..<zonesTopBottomCount {
             let flipped = zonesTopBottomCount - 1 - i
             let zoneWidth = width / zonesTopBottomCount
-            let rect = CGRect(x: flipped * zoneWidth, y: height - stripThicknessCount, width: zoneWidth, height: stripThicknessCount)
-            results.append(averageColor(in: rect, pixels: pixelData, imageWidth: width))
+            let rect = CGRect(x: flipped * zoneWidth, y: 0, width: zoneWidth, height: stripThicknessCount)
+            results.append(averageColor(in: rect, pixels: bottomPixels, imageWidth: width))
         }
 
         return results
