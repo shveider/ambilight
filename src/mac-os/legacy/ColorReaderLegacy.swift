@@ -12,18 +12,16 @@ class ColorReader {
     let zonesLeftRightCount: Int
     let zonesTopBottomCount: Int
     let stripThicknessCount: Int
-    let topBottomPadding: Int
 
     private let downscaleWidth = 160
     private let downscaleHeight = 90
 
     private var smallBuffer: [UInt8] = []
 
-    init(zonesLeftRight: Int, zonesTopBottom: Int, stripThickness: Int, topBottomPadding: Int = 0) {
+    init(zonesLeftRight: Int, zonesTopBottom: Int, stripThickness: Int) {
         self.zonesLeftRightCount = zonesLeftRight
         self.zonesTopBottomCount = zonesTopBottom
         self.stripThicknessCount = stripThickness
-        self.topBottomPadding = topBottomPadding
     }
 
     func readColors(displayID: CGDirectDisplayID) -> [RGB] {
@@ -66,66 +64,30 @@ class ColorReader {
         let w = downscaleWidth
         let h = downscaleHeight
 
-        // 🔥 Масштабуємо padding до downscale
-        let scaledPadding = max(0, min(h / 2,
-            topBottomPadding * h / 1080))
-
-        let activeTop = scaledPadding
-        let activeBottom = h - scaledPadding
-        let activeHeight = activeBottom - activeTop
-
-        let zoneH = activeHeight / zonesLeftRightCount
+        let zoneH = h / zonesLeftRightCount
         let zoneW = w / zonesTopBottomCount
-        let t = max(1, stripThicknessCount * h / 1080)
+        let t = max(1, stripThicknessCount * h / 1080) // адаптація
 
-        // LEFT (знизу вгору, тільки в активній зоні)
+        // LEFT
         for i in 0..<zonesLeftRightCount {
             let flipped = zonesLeftRightCount - 1 - i
-            results.append(
-                avgRect(
-                    x: 0,
-                    y: activeTop + flipped * zoneH,
-                    width: t,
-                    height: zoneH
-                )
-            )
+            results.append(avgRect(x: 0, y: flipped * zoneH, width: t, height: zoneH))
         }
 
         // TOP
         for i in 0..<zonesTopBottomCount {
-            results.append(
-                avgRect(
-                    x: i * zoneW,
-                    y: activeTop,
-                    width: zoneW,
-                    height: t
-                )
-            )
+            results.append(avgRect(x: i * zoneW, y: 0, width: zoneW, height: t))
         }
 
         // RIGHT
         for i in 0..<zonesLeftRightCount {
-            results.append(
-                avgRect(
-                    x: w - t,
-                    y: activeTop + i * zoneH,
-                    width: t,
-                    height: zoneH
-                )
-            )
+            results.append(avgRect(x: w - t, y: i * zoneH, width: t, height: zoneH))
         }
 
         // BOTTOM
         for i in 0..<zonesTopBottomCount {
             let flipped = zonesTopBottomCount - 1 - i
-            results.append(
-                avgRect(
-                    x: flipped * zoneW,
-                    y: activeBottom - t,
-                    width: zoneW,
-                    height: t
-                )
-            )
+            results.append(avgRect(x: flipped * zoneW, y: h - t, width: zoneW, height: t))
         }
 
         return results
