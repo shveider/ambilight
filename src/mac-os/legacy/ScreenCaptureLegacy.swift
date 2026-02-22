@@ -58,7 +58,10 @@ class ScreenCapture: ScreenCaptureProtocol {
         // Обробляємо на фоновому
         isProcessing = true
         processQueue.async { [weak self] in
-    autoreleasepool {
-    self?.onFrame?(image)
+            autoreleasepool {
+                self?.onFrame?(image)
+            }
+            self?.isProcessing = false
+        }
+    }
 }
-self?.isProcessing = false
