@@ -1,3 +1,6 @@
+import CoreGraphics
+import Foundation
+
 class ColorReader {
 
     let zonesLeftRightCount: Int
