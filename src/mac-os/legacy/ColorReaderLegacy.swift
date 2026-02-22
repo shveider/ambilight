@@ -66,7 +66,6 @@ class ColorReader {
         let w = downscaleWidth
         let h = downscaleHeight
 
-        // 🔥 Масштабуємо padding до downscale
         let scaledPadding = max(0, min(h / 2,
             topBottomPadding * h / 1080))
 
@@ -74,55 +73,70 @@ class ColorReader {
         let activeBottom = h - scaledPadding
         let activeHeight = activeBottom - activeTop
 
-        let zoneH = activeHeight / zonesLeftRightCount
-        let zoneW = w / zonesTopBottomCount
         let t = max(1, stripThicknessCount * h / 1080)
 
-        // LEFT (знизу вгору, тільки в активній зоні)
+        // ---------------- LEFT (знизу вгору) ----------------
         for i in 0..<zonesLeftRightCount {
             let flipped = zonesLeftRightCount - 1 - i
+
+            let startY = activeTop + (activeHeight * flipped) / zonesLeftRightCount
+            let endY   = activeTop + (activeHeight * (flipped + 1)) / zonesLeftRightCount
+
             results.append(
                 avgRect(
                     x: 0,
-                    y: activeTop + flipped * zoneH,
+                    y: startY,
                     width: t,
-                    height: zoneH
+                    height: endY - startY
                 )
             )
         }
 
-        // TOP
+        // ---------------- TOP (зліва направо) ----------------
         for i in 0..<zonesTopBottomCount {
+
+            let startX = (w * i) / zonesTopBottomCount
+            let endX   = (w * (i + 1)) / zonesTopBottomCount
+
             results.append(
                 avgRect(
-                    x: i * zoneW,
+                    x: startX,
                     y: activeTop,
-                    width: zoneW,
+                    width: endX - startX,
                     height: t
                 )
             )
         }
 
-        // RIGHT
+        // ---------------- RIGHT (зверху вниз) ----------------
         for i in 0..<zonesLeftRightCount {
+
+            let startY = activeTop + (activeHeight * i) / zonesLeftRightCount
+            let endY   = activeTop + (activeHeight * (i + 1)) / zonesLeftRightCount
+
             results.append(
                 avgRect(
                     x: w - t,
-                    y: activeTop + i * zoneH,
+                    y: startY,
                     width: t,
-                    height: zoneH
+                    height: endY - startY
                 )
             )
         }
 
-        // BOTTOM
+        // ---------------- BOTTOM (справа наліво) ----------------
         for i in 0..<zonesTopBottomCount {
+
             let flipped = zonesTopBottomCount - 1 - i
+
+            let startX = (w * flipped) / zonesTopBottomCount
+            let endX   = (w * (flipped + 1)) / zonesTopBottomCount
+
             results.append(
                 avgRect(
-                    x: flipped * zoneW,
+                    x: startX,
                     y: activeBottom - t,
-                    width: zoneW,
+                    width: endX - startX,
                     height: t
                 )
             )
