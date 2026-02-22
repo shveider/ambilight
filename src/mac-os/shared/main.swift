@@ -9,7 +9,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         capture.onFrame = { [weak self] pixelBuffer in
-            print("onFrame")
             guard let self else { return }
             let colors = self.colorReader.readColors(from: pixelBuffer)
             self.arduino?.sendColors(colors)

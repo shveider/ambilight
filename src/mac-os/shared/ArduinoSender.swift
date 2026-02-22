@@ -72,11 +72,7 @@ class ArduinoSender {
         isSending = true
         sendQueue.async { [weak self] in
             guard let self else { return }
-            do {
-                try self.serialPort?.write(packet)
-            } catch {
-                print("⚠️ Помилка запису в порт: \(error)")
-            }
+            self.serialPort?.write(packet)
             self.isSending = false
         }
     }

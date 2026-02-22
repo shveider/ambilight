@@ -9,14 +9,14 @@ struct RGB {
 
 class ColorReader {
 
-    let zonesLeftRightCount: Int  // 32
-    let zonesTopBottomCount: Int  // 57
-    let stripThicknessCount: Int  // 10
+    let zonesLeftRightCount: Int
+    let zonesTopBottomCount: Int
+    let stripThicknessCount: Int
 
     // Загальна кількість зон
     var totalZones: Int { (zonesLeftRightCount * 2) + (zonesTopBottomCount * 2) }
 
-    init(zonesLeftRight: Int = 32, zonesTopBottom: Int = 57, stripThickness: Int = 10) {
+    init(zonesLeftRight: Int, zonesTopBottom: Int, stripThickness: Int) {
         self.zonesLeftRightCount = zonesLeftRight
         self.zonesTopBottomCount = zonesTopBottom
         self.stripThicknessCount = stripThickness
