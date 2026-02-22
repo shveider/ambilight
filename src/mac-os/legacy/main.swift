@@ -2,10 +2,35 @@ import Foundation
 import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    let capture       = ScreenCapture()
-    let colorReader   = ColorReader(zonesLeftRight: 32, zonesTopBottom: 57, stripThickness: 8, topBottomPadding: 300)
+    let capture = ScreenCapture()
+
+    let colorReader: ColorReader
+
     let arduinoFinder = ArduinoPathFinder()
     lazy var arduino  = arduinoFinder.findPort().map { ArduinoSender(portPath: $0) }
+
+    override init() {
+
+        // читаємо аргументи
+        let args = CommandLine.arguments
+
+        var padding = 0
+
+        if args.count > 1, let value = Int(args[1]) {
+            padding = value
+        }
+
+        print("🎬 TopBottomPadding = \(padding)")
+
+        self.colorReader = ColorReader(
+            zonesLeftRight: 32,
+            zonesTopBottom: 57,
+            stripThickness: 8,
+            topBottomPadding: padding
+        )
+
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         capture.onFrame = { [weak self] displayID in
