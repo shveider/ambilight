@@ -1,39 +1,59 @@
 import CoreGraphics
 import Foundation
+import IOSurface
+import QuartzCore
 
 class ScreenCapture {
 
     var onFrame: ((CGDirectDisplayID) -> Void)?
-    private var timer: Timer?
-    private let processQueue = DispatchQueue(label: "capture.process", qos: .userInitiated)
+
+    private var displayStream: CGDisplayStream?
+    private let processQueue = DispatchQueue(label: "capture.stream", qos: .userInitiated)
     private let semaphore = DispatchSemaphore(value: 1)
 
+    private var lastFrameTime: CFTimeInterval = 0
+    private let maxFPS: Double = 20.0
+
     func startCapture() async throws {
+
         let displayID = CGMainDisplayID()
+        let width = 160   // одразу downscale
+        let height = 90
 
-        await MainActor.run {
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 20.0, repeats: true) { [weak self] _ in
-                guard let self else { return }
+        displayStream = CGDisplayStream(
+            dispatchQueueDisplay: displayID,
+            outputWidth: width,
+            outputHeight: height,
+            pixelFormat: Int32(kCVPixelFormatType_32BGRA),
+            properties: nil,
+            queue: processQueue
+        ) { [weak self] status, _, surface, _ in
 
-                // якщо ще обробляється кадр — пропускаємо
-                guard self.semaphore.wait(timeout: .now()) == .success else { return }
+            guard let self else { return }
+            guard status == .frameComplete else { return }
 
-                self.processQueue.async {
-                    autoreleasepool {
-                        self.onFrame?(displayID)
-                    }
-                    self.semaphore.signal()
-                }
+            // FPS limit
+            let now = CACurrentMediaTime()
+            guard now - self.lastFrameTime > (1.0 / self.maxFPS) else { return }
+            self.lastFrameTime = now
+
+            // не обробляємо якщо ще зайняті
+            guard self.semaphore.wait(timeout: .now()) == .success else { return }
+
+            autoreleasepool {
+                self.onFrame?(displayID)
             }
+
+            self.semaphore.signal()
         }
 
-        print("✅ Optimized Legacy Capture — 20 FPS stable")
+        displayStream?.start()
+
+        print("✅ CGDisplayStream запущено — стабільні 20 FPS")
     }
 
     func stopCapture() async throws {
-        await MainActor.run {
-            timer?.invalidate()
-            timer = nil
-        }
+        displayStream?.stop()
+        displayStream = nil
     }
 }
